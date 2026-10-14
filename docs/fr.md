@@ -1,67 +1,219 @@
-# Template de démonstration
+# Nextcloud
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+[Nextcloud](https://nextcloud.com/) est le cloud auto-hébergé de nombreux
+foyers : fichiers, photos, agendas et contacts sur votre propre serveur. Cette
+intégration surveille votre Nextcloud depuis Gladys, **en lecture seule**, par
+son API de supervision (l'application « Monitoring », `serverinfo`, livrée et
+activée avec Nextcloud) : est-il en ligne, une mise à jour attend-elle, combien
+d'espace reste-t-il, qui l'utilise. Les scènes peuvent réagir à la sortie d'une
+nouvelle version de Nextcloud ou de ses applications. Un widget du tableau de
+bord résume le tout. Tout reste sur votre réseau local.
 
-## Ce que vous obtenez
+**Testée contre un vrai Nextcloud 32** (32.0.9, SQLite) par les tests
+automatiques et pendant le développement ; pas encore sur une vraie
+installation de Gladys. Vos retours sont les bienvenus dans
+[les issues](https://github.com/guim31/gladys-nextcloud/issues).
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+## Ce qu'il vous faut
 
-## Configuration
+- Gladys Assistant 5.1.0 ou plus récent.
+- Nextcloud avec l'application **Monitoring** (`serverinfo`) activée : elle
+  l'est par défaut. Toute version encore maintenue convient ; la charge du
+  système demande Nextcloud 28 ou plus récent.
+- Nextcloud joignable depuis la machine de Gladys (l'adresse que vous tapez
+  dans votre navigateur à la maison).
+- L'un des deux accès ci-dessous. Jamais votre mot de passe principal.
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+## Mise en route
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+### 1. Donner accès à Gladys
 
-## Actions
+Choisissez **l'un** des deux :
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+- **Un jeton serverinfo (recommandé)** : un secret de votre choix qui n'ouvre
+  que l'API de supervision, et aucun compte. Générez un long texte aléatoire
+  (un gestionnaire de mots de passe le fait), puis posez-le sur le serveur
+  avec `occ`, la ligne de commande de Nextcloud (la commande est aussi
+  rappelée en bas de **Paramètres d'administration → Système**) :
 
-## Scènes
+  ```
+  occ config:app:set serverinfo token --value <votre-jeton>
+  ```
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+  Avec Docker : `docker exec -u www-data <conteneur> php occ config:app:set serverinfo token --value <votre-jeton>`.
+  Sur Nextcloud AIO : `docker exec --user www-data -it nextcloud-aio-nextcloud php occ config:app:set serverinfo token --value <votre-jeton>`.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+- **Un compte administrateur et un mot de passe d'application** : l'API de
+  supervision est réservée aux membres du groupe `admin`. Connectez-vous en
+  administrateur, ouvrez **Paramètres personnels → Sécurité → Appareils et
+  sessions**, tapez `Gladys` comme nom d'application et cliquez sur **Créer un
+  nouveau mot de passe d'application**. Copiez-le : Nextcloud ne l'affiche
+  qu'une fois. Il se révoque au même endroit à tout moment, sans toucher à
+  votre mot de passe.
+
+### 2. Configurer l'intégration
+
+Dans Gladys, **Intégrations → Nextcloud → Configuration** :
+
+- **Adresse** : l'adresse de votre Nextcloud, comme dans votre navigateur,
+  avec son chemin s'il en a un : `https://cloud.example.com`,
+  `http://192.168.1.20:8080`, `https://example.org/nextcloud`. Un lien copié
+  comme `https://cloud.example.com/index.php/apps/files/` est compris aussi.
+  Une redirection de HTTP vers HTTPS sur la même adresse est suivie ; une
+  redirection vers une autre adresse ne l'est jamais (vos identifiants y
+  partiraient).
+- **Jeton serverinfo** : le jeton posé plus haut, ou bien :
+- **Compte administrateur** et **Mot de passe d'application** : l'identifiant
+  d'un administrateur et le mot de passe d'application créé plus haut. Si le
+  jeton et le compte sont remplis tous les deux, c'est le jeton qui sert.
+- **Nom** (facultatif) : le nom de l'appareil dans Gladys ; vide, `Nextcloud`.
+- **Accepter les certificats auto-signés** : à cocher pour une adresse HTTPS
+  dont le certificat n'est pas signé par une autorité (un NAS, un nom local).
+  Pour votre propre serveur seulement.
+- **Intervalle de rafraîchissement** : de 1 minute (par défaut) à 15 minutes.
+- **Langue des noms et des textes** : les noms donnés aux fonctionnalités à
+  l'ajout de l'appareil, et les textes de l'appareil (français par défaut).
+
+Enregistrez, puis **Tester la connexion** : Nextcloud est lu et le résultat
+s'affiche (version, mise à jour, utilisateurs, fichiers, espace libre, et la
+façon dont il a été lu).
+
+### 3. Ajouter l'appareil
+
+Ouvrez l'onglet **Découverte** de l'intégration et cliquez sur **Ajouter à
+Gladys** sur l'appareil Nextcloud.
+
+## L'appareil
+
+Un appareil par Nextcloud, toutes ses fonctionnalités en lecture seule :
+
+- **En ligne** : Nextcloud répond (0 après deux lectures ratées de suite, ou en
+  mode maintenance).
+- **Version de Nextcloud** : la version installée (`32.0.9`).
+- **Mise à jour de Nextcloud disponible** : 1 quand Nextcloud a trouvé une
+  nouvelle version de lui-même (sa propre vérification quotidienne, celle des
+  pages d'administration).
+- **Mises à jour d'applications** : le nombre d'applications installées qui ont
+  une mise à jour dans le magasin d'applications.
+- **Utilisateurs actifs (5 min)**, **Utilisateurs actifs (1 heure)**,
+  **Utilisateurs actifs (24 heures)** : les utilisateurs qui se sont connectés
+  ou ont utilisé Nextcloud dans ce laps de temps.
+- **Utilisateurs** : les comptes qui se sont connectés au moins une fois.
+- **Fichiers** : le nombre de fichiers (un compte que Nextcloud rafraîchit
+  toutes les 3 heures).
+- **Partages** : le nombre de partages (liens publics, utilisateurs, groupes,
+  e-mail…).
+- **Espace libre** : l'espace libre du dossier de données, en Go.
+- **Taille de la base de données** : en Mo.
+- **Charge du système** : la charge moyenne de la dernière minute, par fil
+  d'exécution du processeur : 100 % quand tous les fils sont occupés (affiché
+  100 % au-delà).
+- **Mémoire utilisée** : la mémoire du serveur en usage, en %.
+- **Version de PHP** : la version de PHP qui fait tourner Nextcloud.
+- **Cache mémoire** : les caches mémoire que Nextcloud utilise (`APCu`,
+  `Redis`…), ou `Aucun` : les vérifications de Nextcloud en recommandent un.
+
+Une fonctionnalité apparaît dès que Nextcloud lui a donné une valeur : sur un
+système qui ne la donne pas (pas de nombre de fils, espace libre inconnu), elle
+est simplement absente.
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Nextcloud** montre d'un coup d'œil : l'espace libre, les
+utilisateurs actifs des 5 dernières minutes, le nombre de mises à jour en
+attente (Nextcloud et ses applications, en orange s'il y en a). Puis une liste,
+ce qui demande votre attention en premier : la nouvelle version de Nextcloud,
+les applications à mettre à jour, une charge du système ou une mémoire au-delà
+de 80 %, un cache mémoire absent ; puis les utilisateurs actifs sur 1 heure et
+24 heures, les utilisateurs, fichiers, partages, la base de données, la version
+de PHP.
+
+Boutons : **Actualiser** relit Nextcloud ; **Ouvrir Nextcloud** ouvre sa vue
+d'ensemble d'administration, quand l'adresse est en HTTPS (le tableau de bord
+n'ouvre que des liens sécurisés).
+
+## Scènes
+
+### Déclencheurs
+
+- **Mise à jour de Nextcloud disponible** : Nextcloud a trouvé une nouvelle
+  version de lui-même. Une fois par version : une vérification qui hésite ou un
+  redémarrage ne l'annoncent pas à nouveau. Informations transmises :
+  `server_name` (le nom de l'appareil), `installed_version`, `new_version`.
+- **Mises à jour d'applications Nextcloud disponibles** : de nouvelles mises à
+  jour sont apparues pour des applications installées, un événement pour toutes
+  celles trouvées à la même lecture, une fois par version d'application.
+  Informations transmises : `server_name`, `apps` (les nouvelles avec leur
+  version : `calendar 5.5.4, deck 1.15.0`), `count` (combien de nouvelles),
+  `total` (applications en attente de mise à jour).
+
+Ce qui attend déjà quand l'intégration démarre pour la première fois est
+enregistré, pas annoncé : les fonctionnalités et le widget le montrent.
+
+Pour l'espace libre, les utilisateurs ou la charge, pas besoin de déclencheur :
+utilisez les fonctionnalités dans une condition de scène (« Espace libre sous
+20 Go », « En ligne passe à 0 »).
+
+### Idées de scènes
+
+- **Mise à jour de Nextcloud disponible** → envoyez-vous un message avec les
+  variables `new_version` et `installed_version` : « Nextcloud 32.0.10 est
+  disponible (installé : 32.0.9) ».
+- **Mises à jour d'applications Nextcloud disponibles** → une notification
+  avec `apps` sur votre téléphone, au plus une fois par semaine avec une
+  condition sur l'heure.
+- Espace libre sous 20 Go → un message, avant que les sauvegardes de photos des
+  téléphones n'échouent.
+- En ligne passe à 0 la nuit → rallumez la prise connectée du NAS, ou envoyez
+  un message.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Jeton, identifiant ou mot de passe d'application refusé »** : le jeton
+  n'est pas celui posé avec `occ`, ou le mot de passe d'application a été
+  révoqué ou mal recopié. La protection contre la force brute de Nextcloud
+  ralentit les requêtes d'une adresse qui échoue : après un refus, Gladys
+  réessaie au bout de 30 minutes seulement, ou tout de suite quand vous
+  enregistrez la configuration ou cliquez sur **Tester la connexion**.
+- **« Ce compte n'est pas administrateur »** : le compte est valide mais pas
+  dans le groupe `admin`. Utilisez un administrateur, ou le jeton serverinfo.
+- **« Trop de tentatives échouées »** : la protection contre la force brute
+  bloque l'adresse de Gladys. Corrigez les identifiants, patientez, ou
+  réinitialisez-la sur le serveur : `occ security:bruteforce:reset <adresse de Gladys>`.
+  Si Gladys passe par un proxy inverse pour joindre Nextcloud, réglez
+  `trusted_proxies` dans Nextcloud, sinon toute la maison partage une même
+  adresse bloquée.
+- **« L'application Monitoring (serverinfo) est désactivée »** : activez-la
+  dans **Applications → Applications désactivées**, ou
+  `occ app:enable serverinfo`.
+- **« En mode maintenance »** : une mise à jour ou `occ maintenance:mode --on`
+  est en cours. En ligne vaut 0 jusqu'à la fin.
+- **« Pas de Nextcloud à cette adresse »** : l'adresse ou son chemin est faux
+  (un Nextcloud servi sous `/nextcloud` doit l'avoir dans l'adresse).
+- **« Redirige vers une autre adresse »** : saisissez l'adresse finale affichée
+  par votre navigateur.
+- **« Certificat refusé »** : cochez **Accepter les certificats auto-signés**.
+- **L'appareil affiche « Mettre à jour » dans Découverte** : une fonctionnalité
+  est apparue (la première mise à jour d'application, l'espace libre désormais
+  connu). Mettez-le à jour pour l'obtenir.
+- Plus de détails dans les journaux de l'intégration, avec `LOG_LEVEL=debug`.
+
+## Limites
+
+- Un seul Nextcloud par installation.
+- Lecture seule : ni mode maintenance, ni mise à jour, ni opération sur les
+  fichiers depuis Gladys.
+- Lu toutes les 1 à 15 minutes : un changement apparaît à la lecture suivante.
+  Chaque lecture est une requête légère ; il n'y a pas de quota. Les mises à
+  jour d'applications viennent de la liste du magasin que Nextcloud garde une
+  heure : elles n'ajoutent pas de requête au magasin à chaque lecture.
+- Le nombre de fichiers est rafraîchi par Nextcloud toutes les 3 heures.
+- Ni températures des disques, ni trafic réseau, ni quotas par utilisateur :
+  l'API de supervision ne les donne pas.
+- L'intégration ne garde dans `/data` que l'adresse, les fonctionnalités vues
+  et les versions déjà annoncées ; le jeton et le mot de passe d'application
+  restent dans la configuration de Gladys et n'apparaissent jamais dans les
+  journaux.
+
+Nextcloud est une marque de Nextcloud GmbH. Cette intégration n'est ni
+affiliée à Nextcloud GmbH, ni approuvée ou soutenue par elle.

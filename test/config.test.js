@@ -1,33 +1,91 @@
+// -----------------------------------------------------------------------------
+// Configuration: the address as users type or paste it, the two ways to
+// authenticate, the defaults.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG, hostOf, normalizeConfig, parseServerUrl } from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+test('the address: a bare host, a port, a sub-path, a URL copied from the browser', () => {
+  const cases = [
+    ['192.0.2.20', 'http://192.0.2.20'],
+    ['  cloud.local:8080/ ', 'http://cloud.local:8080'],
+    ['https://cloud.example.com', 'https://cloud.example.com'],
+    ['https://example.org/nextcloud/', 'https://example.org/nextcloud'],
+    ['https://cloud.example.com/index.php/apps/files/?dir=/', 'https://cloud.example.com'],
+    ['https://example.org/nextcloud/index.php/login', 'https://example.org/nextcloud'],
+    ['https://example.org/nextcloud/apps/dashboard/', 'https://example.org/nextcloud'],
+    ['https://cloud.example.com/settings/admin/overview', 'https://cloud.example.com'],
+    [
+      'https://cloud.example.com/ocs/v2.php/apps/serverinfo/api/v1/info',
+      'https://cloud.example.com',
+    ],
+    ['https://cloud.example.com/status.php', 'https://cloud.example.com'],
+    ['HTTPS://Cloud.Example.com', 'https://cloud.example.com'],
+  ];
+  for (const [typed, expected] of cases) {
+    assert.equal(parseServerUrl(typed), expected, typed);
+  }
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
+test('an unusable address is refused, credentials in it included', () => {
+  for (const typed of ['', '   ', 'ftp://cloud.example.com', 'http://', 'https://admin:pw@cloud']) {
+    assert.equal(parseServerUrl(typed), null, typed);
+  }
+  assert.equal(parseServerUrl(undefined), null);
+  const config = normalizeConfig({ url: 'https://admin:secret@cloud.example.com', token: 't' });
+  assert.equal(config.server, null);
+  assert.equal(config.invalidUrl, true);
 });
 
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
+test('the token wins over the account; the account needs its app password', () => {
+  const both = normalizeConfig({
+    url: 'cloud.local',
+    token: ' tok ',
+    username: 'admin',
+    app_password: 'pw',
+  });
+  assert.deepEqual(both.server.auth, { kind: 'token', token: 'tok' });
+
+  const account = normalizeConfig({ url: 'cloud.local', username: ' admin ', app_password: 'pw' });
+  assert.deepEqual(account.server.auth, { kind: 'basic', username: 'admin', password: 'pw' });
+
+  const half = normalizeConfig({ url: 'cloud.local', username: 'admin' });
+  assert.equal(half.server, null);
+  assert.equal(half.missingAuth, true);
+  assert.equal(half.invalidUrl, false);
 });
 
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
+test('the defaults, and values coming as strings from the form', () => {
+  const empty = normalizeConfig({});
+  assert.equal(empty.server, null);
+  assert.equal(empty.missingAuth, false);
+  assert.equal(empty.invalidUrl, false);
+  assert.equal(empty.allowSelfSigned, false);
+  assert.equal(empty.pollIntervalMs, Number(DEFAULT_CONFIG.poll_interval) * 1000);
+  assert.equal(empty.language, 'fr');
+
+  const typed = normalizeConfig({
+    url: 'cloud.local',
+    token: 'tok',
+    allow_self_signed: 'true',
+    poll_interval: 300,
+    language: 'de',
+    name: '  Family cloud  ',
+  });
+  assert.equal(typed.allowSelfSigned, true);
+  assert.equal(typed.pollIntervalMs, 300_000);
+  assert.equal(typed.language, 'de');
+  assert.equal(typed.server.name, 'Family cloud');
+
+  // Outside the offered list: the default.
+  assert.equal(normalizeConfig({ poll_interval: '5' }).pollIntervalMs, 60_000);
+  assert.equal(normalizeConfig({ language: 'it' }).language, 'fr');
+  assert.equal(normalizeConfig(null).server, null);
 });
 
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+test('the host shown to the user has no path', () => {
+  assert.equal(hostOf('https://example.org:8443/nextcloud'), 'example.org:8443');
+  assert.equal(hostOf('not a url'), '?');
 });

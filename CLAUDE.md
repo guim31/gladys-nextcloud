@@ -16,11 +16,12 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "offline" # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
+npm run test:real                         # against a real Nextcloud (NEXTCLOUD_URL...), else skipped
 npx github:GladysAssistant/integration-store .   # store admission checks
 ```
 
@@ -31,16 +32,22 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js registers the handlers before connect())
+src/app.js                        every SDK handler -> the hub; shared by index.js and the tests
+src/hub.js                        the instance: own reading timer, states, scene triggers, statuses
+src/devices.js                    the device: feature keys, names (4 languages), shapes, values
+src/widgets.js                    dashboard widget `nextcloud` (manifest `widgets`)
+src/texts.js                      every other user-facing text, in en/fr/de/es
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/store.js, src/logs.js         /data persistence; failures logged once
+src/nextcloud/http.js             the only network code (node:http/https, self-signed on option)
+src/nextcloud/client.js           serverinfo request, redirects, error kinds
+src/nextcloud/model.js            serverinfo answer -> snapshot
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
+test/                             node --test, against the SDK's fake Gladys and a fake Nextcloud
+test/fixtures/nextcloud/          real Nextcloud 32 answers + the Home Assistant fixture
+test/real.test.js                 `npm run test:real`, against a real Nextcloud (skipped without one)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +77,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, widget texts, feature names,
+  manifest texts, and `docs/{en,fr,de,es}.md` with the same sections.
+  `test/i18n.test.js` enforces it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +242,58 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## Nextcloud (propre à ce dépôt)
+
+- **API lue** : une seule requête, `GET <nextcloud>/ocs/v2.php/apps/serverinfo/api/v1/info?format=json&skipApps=false&skipUpdate=false`
+  (application « Monitoring », `serverinfo`, livrée et activée par défaut). En-têtes
+  `OCS-APIRequest: true`, `Accept: application/json`. Lecture seule : rien d'autre n'est appelé.
+- **Authentification** (`ApiController::checkAuthorized`) : en-tête `NC-Token` égal à la valeur
+  posée par `occ config:app:set serverinfo token --value …` (aucun compte), sinon Basic d'un compte
+  du groupe **admin** (mot de passe d'application recommandé, le principal marche sans 2FA). Le
+  jeton l'emporte si les deux sont remplis.
+- **Réponses réelles** (Nextcloud 32.0.9, `test/fixtures/nextcloud/real/`) : 401 OCS **997**
+  « Unauthorised » = identifiant ou mot de passe faux (le cœur refuse avant l'appli) ; 401
+  `data.message: "Unauthorized"` = jeton faux **ou** compte non admin (indiscernables par la
+  réponse : le type d'accès tranche) ; 404 OCS **998** = appli désactivée ; 503 OCS 503 = mode
+  maintenance ; 429 = protection force brute à bout (code lu, non observé).
+- **Force brute** : `@BruteForceProtection(action=serverinfo)` et `throttle()` sur chaque 401 :
+  l'adresse de Gladys est ralentie (jusqu'à 25 s par requête), voire bloquée, et derrière un
+  proxy inverse sans `trusted_proxies` c'est **toute la maison** qui l'est. D'où : après un
+  refus (auth, non-admin, 429), relecture au bout de **30 min** seulement, sauf nouvelle config,
+  « Tester la connexion » ou bouton Actualiser ; délai d'attente HTTP de 30 s (le délai ajouté par
+  Nextcloud doit tenir).
+- **Unités et pièges des champs** : `mem_total`/`mem_free` en **Kio** (MemAvailable × 1024 / 1024,
+  0 hors Linux) ; `freespace` en octets, `null` si inconnu ; `database.size` est une **chaîne**
+  (ou « N/A ») ; `cpuload` = charges 1/5/15 min, `cpunum` absent avant Nextcloud 28 (pas de charge
+  en %) ; `app_updates` vaut `[]` vide (tableau PHP) et un **objet** `{ id: version }` rempli ;
+  `num_files` est un compteur mis à jour par une tâche de fond toutes les **3 h** ; `update` n'est
+  présent qu'avec `skipUpdate=false` et lit le résultat de la vérification quotidienne du cœur
+  (`core.lastupdateResult`), sans requête externe ; `skipApps=false` lit la liste du magasin
+  d'applis que Nextcloud garde **1 h** (5 min après un échec).
+- **Identité** : emplacement de config (1), `ext:<selector>:instance:1`. serverinfo ne donne aucun
+  identifiant d'instance, et l'adresse change (HTTP → HTTPS, nouveau domaine) sans que l'instance
+  change.
+- **Adresse** : chemin conservé (`/nextcloud`), lien copié coupé à `/index.php`, `/apps`,
+  `/settings`, `/login`, `/ocs`… ; identifiants dans l'URL refusés. Redirection suivie seulement
+  sur le **même hôte**, jamais HTTPS → HTTP, 3 sauts au plus.
+- **Rafraîchissement** : minuteur du conteneur (1 à 15 min) ; l'appareil est publié avec
+  `should_poll: true` + 1 min, et l'`onPoll` du cœur ne lit que si le minuteur n'a pas lu depuis
+  90 % d'un intervalle. Hors ligne après deux échecs « silencieux » (réseau, maintenance, 5xx),
+  nouvel essai 15 s après le premier. États par `publishChangedStates` (battement de cœur 6 h).
+- **Déclencheurs** : `nextcloud_update_available` et `app_updates_available`, une fois par version
+  (versions annoncées gardées dans `/data`, **jamais oubliées** : un magasin d'applis en échec côté
+  Nextcloud vide la liste un temps), rien à la première lecture d'une adresse. Pas de déclencheur
+  « espace disque faible » : l'état « Espace libre » et une condition de scène suffisent.
+- **Pas de scène action** : intégration en lecture seule, rien d'utile qu'un état ne donne déjà.
+- **Test réel** : Nextcloud se lance dans une session de code depuis git (`nextcloud/server` tag +
+  sous-module `3rdparty`, `nextcloud/serverinfo` branche `stableNN`), `occ maintenance:install`
+  SQLite et `php -S` (voir `test/fixtures/nextcloud/README.md`) : `download.nextcloud.com` est
+  refusé par le proxy, GitHub non. Une appli d'un checkout git n'a jamais de mise à jour
+  (`isInstalledFromGit`) : la forme de `app_updates` vient du code.
+- **Vérifié en Docker (14/10/2026)** : image de test de même contenu (base `mirror.gcr.io`, ECR a
+  répondu 429) lancée avec `--cap-drop ALL --read-only --memory 256m --pids-limit 256`, volume
+  `/data`, réseau en pont : 19 Mo au repos, reconnexion du SDK sans plantage, aucun jeton dans
+  les journaux, arrêt propre (code 0), et l'intégration complète (faux Gladys du SDK dans le
+  conteneur) contre le vrai Nextcloud via la passerelle du pont : 16 fonctionnalités, 16 états,
+  widget validé, `/data` écrit.
