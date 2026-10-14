@@ -8,8 +8,8 @@
     "de": "Überwache deine Nextcloud: Updates, aktive Benutzer, freier Speicher, Dateien, Last.",
     "es": "Supervise su Nextcloud: actualizaciones, usuarios activos, espacio libre, archivos, carga."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-nextcloud:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-nextcloud:1.0.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-nextcloud/main/cover.png",
   "categories": ["services", "network"],
