@@ -1,0 +1,192 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "ok",
+      "statuscode": 200,
+      "message": "OK"
+    },
+    "data": {
+      "nextcloud": {
+        "system": {
+          "version": "32.0.9.2",
+          "theme": "none",
+          "enable_avatars": "yes",
+          "enable_previews": "yes",
+          "memcache.local": "none",
+          "memcache.distributed": "none",
+          "filelocking.enabled": "yes",
+          "memcache.locking": "none",
+          "debug": "no",
+          "freespace": 31692312576,
+          "cpuload": [0.00048828125, 0.0361328125, 0.00244140625],
+          "cpunum": 4,
+          "mem_total": 16479232,
+          "mem_free": 15849472,
+          "swap_total": 0,
+          "swap_free": 0,
+          "apps": {
+            "num_installed": 28,
+            "num_updates_available": 0,
+            "app_updates": []
+          },
+          "update": {
+            "lastupdatedat": 1792005240,
+            "available": true,
+            "available_version": "32.0.10.1"
+          }
+        },
+        "storage": {
+          "num_users": 2,
+          "num_disabled_users": 0,
+          "num_files": 23,
+          "num_storages": 3,
+          "num_storages_local": 0,
+          "num_storages_home": 2,
+          "num_storages_other": 1,
+          "size_appdata_storage": 0,
+          "num_files_appdata": 11
+        },
+        "shares": {
+          "num_shares": 2,
+          "num_shares_user": 1,
+          "num_shares_groups": 0,
+          "num_shares_link": 1,
+          "num_shares_mail": 0,
+          "num_shares_room": 0,
+          "num_shares_link_no_password": 1,
+          "num_fed_shares_sent": 0,
+          "num_fed_shares_received": 0,
+          "permissions_3_17": 1,
+          "permissions_0_19": 1
+        }
+      },
+      "server": {
+        "webserver": "PHP/8.3.6 (Development Server)",
+        "php": {
+          "version": "8.3.6",
+          "memory_limit": -1,
+          "max_execution_time": 3600,
+          "upload_max_filesize": 2097152,
+          "opcache_revalidate_freq": 2,
+          "opcache": {
+            "opcache_enabled": true,
+            "cache_full": false,
+            "restart_pending": false,
+            "restart_in_progress": false,
+            "memory_usage": {
+              "used_memory": 33820656,
+              "free_memory": 100395712,
+              "wasted_memory": 1360,
+              "current_wasted_percentage": 0.0010132789611816406
+            },
+            "interned_strings_usage": {
+              "buffer_size": 8388608,
+              "used_memory": 6963176,
+              "free_memory": 1425432,
+              "number_of_strings": 61888
+            },
+            "opcache_statistics": {
+              "num_cached_scripts": 1353,
+              "num_cached_keys": 2607,
+              "max_cached_keys": 16229,
+              "hits": 14887,
+              "start_time": 1792005247,
+              "last_restart_time": 0,
+              "oom_restarts": 0,
+              "hash_restarts": 0,
+              "manual_restarts": 0,
+              "misses": 1356,
+              "blacklist_misses": 0,
+              "blacklist_miss_ratio": 0,
+              "opcache_hit_rate": 91.65178846272241
+            },
+            "jit": {
+              "enabled": false,
+              "on": false,
+              "kind": 0,
+              "opt_level": 0,
+              "opt_flags": 0,
+              "buffer_size": 0,
+              "buffer_free": 0
+            }
+          },
+          "apcu": [],
+          "extensions": {
+            "20": "calendar",
+            "16": "cli_server",
+            "0": "core",
+            "21": "ctype",
+            "22": "curl",
+            "1": "date",
+            "23": "dom",
+            "33": "exif",
+            "25": "ffi",
+            "26": "fileinfo",
+            "6": "filter",
+            "27": "ftp",
+            "28": "gd",
+            "29": "gettext",
+            "7": "hash",
+            "30": "iconv",
+            "31": "igbinary",
+            "32": "intl",
+            "8": "json",
+            "2": "libxml",
+            "24": "mbstring",
+            "34": "mysqli",
+            "17": "mysqlnd",
+            "3": "openssl",
+            "9": "pcntl",
+            "4": "pcre",
+            "18": "pdo",
+            "35": "pdo_mysql",
+            "36": "pdo_pgsql",
+            "37": "pdo_sqlite",
+            "38": "pgsql",
+            "39": "phar",
+            "40": "posix",
+            "10": "random",
+            "41": "readline",
+            "42": "redis",
+            "11": "reflection",
+            "13": "session",
+            "43": "shmop",
+            "44": "simplexml",
+            "45": "sockets",
+            "15": "sodium",
+            "12": "spl",
+            "46": "sqlite3",
+            "14": "standard",
+            "47": "sysvmsg",
+            "48": "sysvsem",
+            "49": "sysvshm",
+            "50": "tokenizer",
+            "19": "xml",
+            "51": "xmlreader",
+            "52": "xmlwriter",
+            "53": "xsl",
+            "55": "zend opcache",
+            "54": "zip",
+            "5": "zlib"
+          }
+        },
+        "fpm": false,
+        "database": {
+          "type": "sqlite3",
+          "version": "3.45.1",
+          "size": "1777664"
+        }
+      },
+      "activeUsers": {
+        "last5minutes": 0,
+        "last1hour": 2,
+        "last24hours": 2,
+        "last7days": 2,
+        "last1month": 2,
+        "last3months": 2,
+        "last6months": 2,
+        "lastyear": 2
+      }
+    }
+  }
+}

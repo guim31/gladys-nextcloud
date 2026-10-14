@@ -1,177 +1,416 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Nextcloud",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Watch your Nextcloud: updates, active users, free space, files, shares, load and memory.",
+    "fr": "Surveillez votre Nextcloud : mises à jour, utilisateurs actifs, espace libre, fichiers, charge.",
+    "de": "Überwache deine Nextcloud: Updates, aktive Benutzer, freier Speicher, Dateien, Last.",
+    "es": "Supervise su Nextcloud: actualizaciones, usuarios activos, espacio libre, archivos, carga."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-nextcloud:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-nextcloud/main/cover.png",
+  "categories": ["services", "network"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Nextcloud",
+        "fr": "Votre Nextcloud",
+        "de": "Deine Nextcloud",
+        "es": "Su Nextcloud"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Gladys reads the monitoring API of Nextcloud (the \"Monitoring\" app, serverinfo, enabled by default), read only. It needs the serverinfo token, or an administrator account with an app password: never your main password.",
+        "fr": "Gladys lit l'API de supervision de Nextcloud (l'application « Monitoring », serverinfo, activée par défaut), en lecture seule. Il lui faut le jeton serverinfo, ou un compte administrateur avec un mot de passe d'application : jamais votre mot de passe principal.",
+        "de": "Gladys liest die Monitoring-API von Nextcloud (die App „Monitoring“, serverinfo, standardmäßig aktiviert), nur lesend. Dafür braucht Gladys das serverinfo-Token oder ein Administratorkonto mit App-Passwort: nie dein Hauptpasswort.",
+        "es": "Gladys lee la API de supervisión de Nextcloud (la aplicación «Monitoring», serverinfo, activada por defecto), solo lectura. Necesita el token de serverinfo, o una cuenta de administrador con una contraseña de aplicación: nunca su contraseña principal."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/nextcloud/serverinfo#api",
+          "label": {
+            "en": "serverinfo API and token",
+            "fr": "API serverinfo et jeton",
+            "de": "serverinfo-API und Token",
+            "es": "API serverinfo y token"
+          }
+        },
+        {
+          "url": "https://docs.nextcloud.com/server/latest/user_manual/en/session_management.html",
+          "label": {
+            "en": "Nextcloud app passwords",
+            "fr": "Mots de passe d'application Nextcloud",
+            "de": "App-Passwörter von Nextcloud",
+            "es": "Contraseñas de aplicación de Nextcloud"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Address",
+        "fr": "Adresse",
+        "de": "Adresse",
+        "es": "Dirección"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "description": {
+        "en": "Address of your Nextcloud, as in your browser, with its path if it has one (https://example.org/nextcloud).",
+        "fr": "Adresse de votre Nextcloud, comme dans votre navigateur, avec son chemin s'il en a un (https://example.org/nextcloud).",
+        "de": "Adresse deiner Nextcloud wie im Browser, mit ihrem Pfad, falls vorhanden (https://example.org/nextcloud).",
+        "es": "Dirección de su Nextcloud, como en su navegador, con su ruta si la tiene (https://example.org/nextcloud)."
+      },
+      "placeholder": {
+        "en": "e.g. https://cloud.example.com",
+        "fr": "ex. https://cloud.example.com",
+        "de": "z. B. https://cloud.example.com",
+        "es": "p. ej. https://cloud.example.com"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "access",
+      "type": "section",
+      "label": {
+        "en": "Access",
+        "fr": "Accès",
+        "de": "Zugang",
+        "es": "Acceso"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "description": {
+        "en": "Either a serverinfo token you choose and set with occ (command at the bottom of Administration settings, System), or an administrator account and an app password (Personal settings, Security). The token wins when both are filled.",
+        "fr": "Soit un jeton serverinfo de votre choix, posé avec occ (commande en bas de Paramètres d'administration, Système), soit un compte administrateur et un mot de passe d'application (Paramètres personnels, Sécurité). Le jeton l'emporte si les deux sont remplis.",
+        "de": "Entweder ein selbst gewähltes serverinfo-Token, gesetzt mit occ (Befehl unten in Verwaltungseinstellungen, System), oder ein Administratorkonto und ein App-Passwort (Persönliche Einstellungen, Sicherheit). Sind beide ausgefüllt, gilt das Token.",
+        "es": "O bien un token de serverinfo que usted elige y define con occ (comando al final de Configuración de administración, Sistema), o bien una cuenta de administrador y una contraseña de aplicación (Configuración personal, Seguridad). Si ambos están rellenados, se usa el token."
+      }
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "token",
+      "type": "secret",
+      "label": {
+        "en": "serverinfo token",
+        "fr": "Jeton serverinfo",
+        "de": "serverinfo-Token",
+        "es": "Token de serverinfo"
+      },
+      "description": {
+        "en": "Recommended: it opens the monitoring API only, and no account.",
+        "fr": "Recommandé : il n'ouvre que l'API de supervision, et aucun compte.",
+        "de": "Empfohlen: Es öffnet nur die Monitoring-API und kein Konto.",
+        "es": "Recomendado: solo abre la API de supervisión, y ninguna cuenta."
+      },
+      "required": false
+    },
+    {
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "Administrator account",
+        "fr": "Compte administrateur",
+        "de": "Administratorkonto",
+        "es": "Cuenta de administrador"
+      },
+      "description": {
+        "en": "Login of an account of the admin group, without a token.",
+        "fr": "Identifiant d'un compte du groupe admin, à défaut de jeton.",
+        "de": "Anmeldename eines Kontos der Gruppe admin, falls kein Token.",
+        "es": "Usuario de una cuenta del grupo admin, a falta de token."
+      },
+      "required": false
+    },
+    {
+      "key": "app_password",
+      "type": "secret",
+      "label": {
+        "en": "App password",
+        "fr": "Mot de passe d'application",
+        "de": "App-Passwort",
+        "es": "Contraseña de aplicación"
+      },
+      "description": {
+        "en": "Created for Gladys in Personal settings, Security. Never your main password.",
+        "fr": "Créé pour Gladys dans Paramètres personnels, Sécurité. Jamais votre mot de passe principal.",
+        "de": "Für Gladys erstellt unter Persönliche Einstellungen, Sicherheit. Nie dein Hauptpasswort.",
+        "es": "Creada para Gladys en Configuración personal, Seguridad. Nunca su contraseña principal."
+      },
+      "required": false
+    },
+    {
+      "key": "name",
+      "type": "string",
+      "label": {
+        "en": "Name",
+        "fr": "Nom",
+        "de": "Name",
+        "es": "Nombre"
+      },
+      "description": {
+        "en": "Name of the device in Gladys. Empty: Nextcloud.",
+        "fr": "Nom de l'appareil dans Gladys. Vide : Nextcloud.",
+        "de": "Name des Geräts in Gladys. Leer: Nextcloud.",
+        "es": "Nombre del dispositivo en Gladys. Vacío: Nextcloud."
+      },
+      "placeholder": {
+        "en": "e.g. Family cloud",
+        "fr": "ex. Cloud familial",
+        "de": "z. B. Familien-Cloud",
+        "es": "p. ej. Nube familiar"
+      },
       "required": false,
-      "default": "celsius",
+      "default": ""
+    },
+    {
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      }
+    },
+    {
+      "key": "allow_self_signed",
+      "type": "boolean",
+      "label": {
+        "en": "Accept self-signed certificates",
+        "fr": "Accepter les certificats auto-signés",
+        "de": "Selbstsignierte Zertifikate akzeptieren",
+        "es": "Aceptar certificados autofirmados"
+      },
+      "description": {
+        "en": "For an HTTPS address whose certificate is not signed by an authority (a NAS, a local name). Tick only for your own server.",
+        "fr": "Pour une adresse HTTPS dont le certificat n'est pas signé par une autorité (un NAS, un nom local). À cocher pour votre propre serveur seulement.",
+        "de": "Für eine HTTPS-Adresse, deren Zertifikat nicht von einer Zertifizierungsstelle signiert ist (ein NAS, ein lokaler Name). Nur für deinen eigenen Server aktivieren.",
+        "es": "Para una dirección HTTPS cuyo certificado no está firmado por una autoridad (un NAS, un nombre local). Márquelo solo para su propio servidor."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often Nextcloud is read: one light request each time.",
+        "fr": "Fréquence de lecture de Nextcloud : une requête légère à chaque fois.",
+        "de": "Wie oft Nextcloud gelesen wird: jedes Mal eine leichte Anfrage.",
+        "es": "Con qué frecuencia se lee Nextcloud: una petición ligera cada vez."
+      },
+      "required": false,
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "60",
+          "label": { "en": "1 minute", "fr": "1 minute", "de": "1 Minute", "es": "1 minuto" }
+        },
+        {
+          "value": "120",
+          "label": { "en": "2 minutes", "fr": "2 minutes", "de": "2 Minuten", "es": "2 minutos" }
+        },
+        {
+          "value": "300",
+          "label": { "en": "5 minutes", "fr": "5 minutes", "de": "5 Minuten", "es": "5 minutos" }
+        },
+        {
+          "value": "600",
+          "label": {
+            "en": "10 minutes",
+            "fr": "10 minutes",
+            "de": "10 Minuten",
+            "es": "10 minutos"
+          }
+        },
+        {
+          "value": "900",
+          "label": {
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "de": "15 Minuten",
+            "es": "15 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names and texts",
+        "fr": "Langue des noms et des textes",
+        "de": "Sprache der Namen und Texte",
+        "es": "Idioma de los nombres y textos"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names given to the features when the device is added, and texts of the device.",
+        "fr": "Noms donnés aux fonctionnalités à l'ajout de l'appareil, et textes de l'appareil.",
+        "de": "Namen der Funktionen beim Hinzufügen des Geräts und Texte des Geräts.",
+        "es": "Nombres de las funciones al añadir el dispositivo, y textos del dispositivo."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": { "en": "English", "fr": "Anglais", "de": "Englisch", "es": "Inglés" }
+        },
+        {
+          "value": "fr",
+          "label": { "en": "French", "fr": "Français", "de": "Französisch", "es": "Francés" }
+        },
+        {
+          "value": "de",
+          "label": { "en": "German", "fr": "Allemand", "de": "Deutsch", "es": "Alemán" }
+        },
+        {
+          "value": "es",
+          "label": { "en": "Spanish", "fr": "Espagnol", "de": "Spanisch", "es": "Español" }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads Nextcloud now and reports what it finds.",
+        "fr": "Lit Nextcloud maintenant et indique ce qu'il trouve.",
+        "de": "Liest Nextcloud sofort und meldet, was gefunden wird.",
+        "es": "Lee Nextcloud ahora e indica lo que encuentra."
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
-      "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+      "key": "nextcloud_update_available",
+      "label": {
+        "en": "Nextcloud update available",
+        "fr": "Mise à jour de Nextcloud disponible",
+        "de": "Nextcloud-Update verfügbar",
+        "es": "Actualización de Nextcloud disponible"
       },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
-        }
-      ],
+      "description": {
+        "en": "Nextcloud found a new version of itself. Once per version.",
+        "fr": "Nextcloud a trouvé une nouvelle version de lui-même. Une fois par version.",
+        "de": "Nextcloud hat eine neue Version von sich gefunden. Einmal pro Version.",
+        "es": "Nextcloud ha encontrado una nueva versión de sí mismo. Una vez por versión."
+      },
       "variables": [
         {
-          "key": "target",
+          "key": "server_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": { "en": "Name", "fr": "Nom", "de": "Name", "es": "Nombre" }
+        },
+        {
+          "key": "installed_version",
+          "type": "string",
+          "label": {
+            "en": "Installed version",
+            "fr": "Version installée",
+            "de": "Installierte Version",
+            "es": "Versión instalada"
+          }
+        },
+        {
+          "key": "new_version",
+          "type": "string",
+          "label": {
+            "en": "New version",
+            "fr": "Nouvelle version",
+            "de": "Neue Version",
+            "es": "Nueva versión"
+          }
         }
       ]
-    }
-  ],
-  "scene_actions": [
+    },
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "app_updates_available",
+      "label": {
+        "en": "Nextcloud app updates available",
+        "fr": "Mises à jour d'applications Nextcloud disponibles",
+        "de": "Nextcloud-App-Updates verfügbar",
+        "es": "Actualizaciones de aplicaciones de Nextcloud disponibles"
       },
-      "timeout_seconds": 15,
-      "fields": [
+      "description": {
+        "en": "New updates appeared for installed apps. Once per app version.",
+        "fr": "De nouvelles mises à jour sont apparues pour des applications installées. Une fois par version.",
+        "de": "Neue Updates für installierte Apps sind erschienen. Einmal pro App-Version.",
+        "es": "Han aparecido nuevas actualizaciones para aplicaciones instaladas. Una vez por versión."
+      },
+      "variables": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
-      "outputs": [
+          "key": "server_name",
+          "type": "string",
+          "label": { "en": "Name", "fr": "Nom", "de": "Name", "es": "Nombre" }
+        },
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "apps",
+          "type": "string",
+          "label": {
+            "en": "New updates (app and version)",
+            "fr": "Nouvelles mises à jour (appli et version)",
+            "de": "Neue Updates (App und Version)",
+            "es": "Nuevas actualizaciones (app y versión)"
+          }
+        },
+        {
+          "key": "count",
+          "type": "number",
+          "label": {
+            "en": "Number of new updates",
+            "fr": "Nombre de nouvelles mises à jour",
+            "de": "Anzahl neuer Updates",
+            "es": "Número de nuevas actualizaciones"
+          }
+        },
+        {
+          "key": "total",
+          "type": "number",
+          "label": {
+            "en": "Apps waiting for an update",
+            "fr": "Applications en attente de mise à jour",
+            "de": "Apps, die auf ein Update warten",
+            "es": "Aplicaciones pendientes de actualizar"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "nextcloud",
+      "label": {
+        "en": "Nextcloud",
+        "fr": "Nextcloud",
+        "de": "Nextcloud",
+        "es": "Nextcloud"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Free space, active users and waiting updates, then users, files, load and memory.",
+        "fr": "Espace libre, utilisateurs actifs, mises à jour en attente, puis fichiers, charge, mémoire.",
+        "de": "Freier Speicher, aktive Benutzer, offene Updates, dann Benutzer, Dateien, Last, Speicher.",
+        "es": "Espacio libre, usuarios activos, actualizaciones pendientes, archivos, carga y memoria."
+      },
+      "icon": "cloud",
+      "action_timeout_seconds": 60
     }
   ]
 }

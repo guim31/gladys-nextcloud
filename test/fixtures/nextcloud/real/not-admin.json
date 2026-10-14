@@ -1,0 +1,12 @@
+{
+  "ocs": {
+    "meta": {
+      "status": "failure",
+      "statuscode": 401,
+      "message": ""
+    },
+    "data": {
+      "message": "Unauthorized"
+    }
+  }
+}
